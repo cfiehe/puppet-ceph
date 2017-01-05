@@ -16,15 +16,13 @@
 class ceph::fs (
   $package_names  = ['ceph-fs-common', 'ceph-fuse'],
   $package_ensure = 'installed',
-  $mounts         = {},
-  $mountpoints    = {}) {
+  $mounts         = {}) {
 
   include ::ceph
 
   package { $package_names: ensure => $package_ensure, }
 
   create_resources('::ceph::fs::mount', $mounts)
-  create_resources('::ceph::fs::mountpoint', $mountpoints)
 
   Class['::ceph'] -> Class['::ceph::fs']
 }

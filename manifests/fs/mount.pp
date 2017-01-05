@@ -1,4 +1,4 @@
-# == Define: ceph::fs::mount
+# == Define: ceph::fs::mountpoint
 #
 # Mounts a ceph file system at the specific mount point
 #
@@ -26,7 +26,7 @@
 #   The mount type. Default: 'fuse.ceph'
 #
 # [*options*]
-#   A single string containing options for the mount, as they would appear in '/etc/fstab'. Default: '_netdev,defaults'.
+#   An array containing options for the mount, as they would appear in '/etc/fstab'. Default: ['_netdev', 'defaults'].
 #
 # [*dump*]
 #   Whether to dump the mount. Default: '0'.
@@ -38,14 +38,14 @@
 #   Whether the mount can be remounted. Default: 'false'.
 #
 define ceph::fs::mount (
-  $ensure     = 'mounted',
+  $ensure     = 'present',
   $owner      = 'root',
   $group      = 'root',
   $mode       = '0755',
   $device     = 'conf=/etc/ceph/ceph.conf,id=admin,client_mountpoint=/',
   $mountpoint = $title,
   $fstype     = 'fuse.ceph',
-  $options    = '_netdev,defaults',
+  $options    = ['_netdev', 'defaults'],
   $dump       = '0',
   $pass       = '0',
   $remounts   = false) {
@@ -83,7 +83,7 @@ define ceph::fs::mount (
     group   => $group,
   }
 
-  mount { "ceph::mount::${mountpoint}":
+  mounttab{ "ceph::mounttab::${mountpoint}":
     ensure   => $ensure,
     device   => $device,
     name     => $mountpoint,
@@ -91,6 +91,11 @@ define ceph::fs::mount (
     options  => $options,
     dump     => $dump,
     pass     => $pass,
+  }
+
+  mountpoint { "ceph::mountpoint::${mountpoint}":
+    ensure   => $ensure,
+    name     => $mountpoint,
     remounts => $remounts,
   }
 
@@ -101,6 +106,8 @@ define ceph::fs::mount (
      group       => 'root',
   }
 
-  Package[$::ceph::fs::package_names] -> Mount["ceph::mount::${mountpoint}"]
-  Exec["ceph::mount::mkdir_${mountpoint}"] -> Mount["ceph::mount::${mountpoint}"] ~> Exec["ceph::mount::fix_perms::${mountpoint}"]
+  Mounttab["ceph::mounttab::${mountpoint}"] ~> Mountpoint["ceph::mountpoint::${mountpoint}"]
+  Package[$::ceph::fs::package_names] -> Mountpoint["ceph::mountpoint::${mountpoint}"]
+  Exec["ceph::mount::mkdir_${mountpoint}"] -> Mountpoint["ceph::mountpoint::${mountpoint}"] -> Exec["ceph::mount::fix_perms::${mountpoint}"]
+  Exec["ceph::mount::mkdir_${mountpoint}"] ~> Exec["ceph::mount::fix_perms::${mountpoint}"]
 }
